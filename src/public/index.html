@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Url Shortener | Shorten</title>
+
+  <link rel="stylesheet" href="/public/index.css">
+</head>
+<body>
+
+  <header>
+    <nav>
+      <h1 class="brand">Url Shortener</h1>
+
+      <ul>
+        <li class="nav--current">Home</li>
+        <li><a href="/public/list.html">List</a></li>
+      </ul>
+    </nav>
+  </header>
+  
+  <main>
+
+    <div id="alertContainer" class="alert-container"></div>
+
+    <form id="form">
+      <fieldset>
+        <input type="url" placeholder="http[s]://..." id="toShorten" required>
+        <input type="submit">
+      </fieldset>
+    </form>
+
+  </main>
+
+  <script>
+    let TIMEOUT_ID = 0;
+    const SERVER_URL = '/api';
+
+    const handleServerFailure = () => {
+
+      const container = document.getElementById('alertContainer');
+      container.innerHTML =
+        `
+        <p><strong>Error:</strong> Something wrong happened! please try again</p>
+        `;
+    };
+
+    const handleUrlCreation = (data) => {
+      document.getElementById('alertContainer').innerHTML = '';
+      const toShorten = document.getElementById('toShorten')
+      toShorten.value =
+        window.location.host + '/u/' + data._id;
+      toShorten.select();
+    }
+
+    const shorten = (value, retry = 0) => {
+      fetch(
+        `${SERVER_URL}/urls`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            url: value
+          }),
+        })
+        .then((response) => {
+          if (!response.ok) {
+            if (retry > 2) {
+              return handleServerFailure();
+            }
+            return shorten(value, retry + 1);
+          }
+
+          return response.json();
+        })
+        .then(handleUrlCreation);
+    };
+
+    document.getElementById('form')
+      .addEventListener('submit', (e) => {
+        e.preventDefault();
+        const value = document.getElementById('toShorten').value;
+
+        if (!value || value === '') {
+          console.error('empty value');
+          return;
+        }
+
+        shorten(value);
+      });
+  </script>
+
+</body>
+</html>

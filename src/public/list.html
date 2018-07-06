@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Url Shortener | List</title>
+  <link rel="stylesheet" href="/public/index.css">
+</head>
+<body>
+  <header>
+      <nav>
+        <h1 class="brand">Url Shortener</h1>
+  
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li class="nav--current">List</li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="container">
+      <div class="alert-container"></div>
+      <p class="helper-text">click on a link to copy to clipboad</p>
+      <ul id="mainList" class="card-list">
+      </ul>
+    </main>
+
+    <script>
+      const SERVER_URL = '/api'; 
+
+      const fetchPage = (currentPage = 1, retry = 0) => {
+        fetch(`${SERVER_URL}/urls?page=${currentPage}`)
+          .then((response) => {
+
+            if (!response.ok) {
+              if (retry > 2) {
+                document.getElementById('alertCotainer').innerHTML =
+                  `<p><strong>Error:</strong> A Server Error Occurred!</p>`;
+                return;
+              }
+
+              fetchPage(currentPage, retry + 1);
+            };
+
+            return response.json()
+          })
+          .then((data) => {
+            const mainList = document.getElementById('mainList');
+            const redirectUrl = location.protocol + '//' + location.host + '/u';
+            const lis = data.map(({ _id, url, created_at }) => (`
+              <li>
+                <a class="shorten-url" href="#${redirectUrl}/${_id}" title="click to copy">${redirectUrl}/${_id}</a>
+                <button>copy</button>
+                <a class="old-url" href="${url}" title="${url}">
+                  ${url.length > 70 ? url.substring(0, 70) + '...' : url}
+                </a>
+                <span>${new Date(created_at).toLocaleString()}</span>
+              </li>
+            `));
+            mainList.innerHTML += lis.join('');
+            attachCopy();
+          });
+        
+      };
+
+      const attachCopy = () => {
+
+        const nodes = document.querySelectorAll('#mainList li');
+
+        for (const node of nodes) {
+          const a = node.querySelector('a.shorten-url');
+          const copyA = (e) => {
+            e.preventDefault();
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(a);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('copy');
+          }
+
+          a.addEventListener('click', copyA);
+          node.querySelector('button')
+            .addEventListener('click', copyA);
+        };
+
+      };
+    
+      document.addEventListener('DOMContentLoaded', (e) => {
+        fetchPage();
+      })
+
+    </script>
+
+</body>
+</html>
